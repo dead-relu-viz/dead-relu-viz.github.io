@@ -264,11 +264,14 @@
   /* Figures that escape the text column and centre on the viewport */
   .figure-wide {
     --gutter: 2rem;
-    --wide-w: min(1500px, calc(100vw - 2 * var(--gutter)));
+    --wide-w: min(1280px, calc(100vw - 2 * var(--gutter)));
     --article-left: calc(max(0px, (100vw - var(--max-width)) / 2) + 1.5rem + 220px + 4rem);
     width: var(--wide-w);
     max-width: none;
     margin: 2.5rem 0 2.5rem calc((100vw - var(--wide-w)) / 2 - var(--article-left));
+    position: relative;
+    z-index: 2;
+    background: var(--bg);
   }
   .figure-wide iframe { display: block; }
 
@@ -760,7 +763,10 @@ What all of these approaches presuppose is that one already knows where in the n
             allow="fullscreen">
         </iframe>
         <figcaption>
-          Figure 2. Interactive visualization of the dead ReLU units in GMIC. The visualization of the architecture is centered on trainable weights, which are of interest in this work.
+          Figure 2. Interactive visualization of the dead ReLU units in GMIC. The lower
+          part of the architecture is not shown: it contains no trainable weights, so it
+          is outside the scope of this analysis, and including it made the graph harder
+          to read.
         </figcaption>
       </figure>
 
