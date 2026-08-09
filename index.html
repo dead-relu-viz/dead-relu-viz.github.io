@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapping Dead Neurons — Diagnostic Tool for Breast-Cancer Screening Networks</title>
+<meta name="description" content="A visual and explanatory analysis of dead neurons in neural networks applied to breast cancer screening.">
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* --- CSS RESET & VARIABLES --- */
+  :root {
+    --bg: #faf9f6;
+    --surface: #ffffff;
+    --text-primary: #1a1a1a;
+    --text-secondary: #555555;
+    --text-muted: #888888;
+    --accent-red: #d9383a;
+    --accent-red-bg: #fdf2f2;
+    --accent-blue: #0f62fe;
+    --border: #e2e2e0;
+    --border-subtle: #eeeeec;
+    
+    --font-serif: 'Newsreader', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    --max-width: 1100px;
+    --content-width: 720px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.7;
+    font-size: 1.05rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent-blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* --- NAVBAR --- */
+  .topnav {
+    position: sticky;
+    top: 0;
+    background: rgba(250, 249, 246, 0.9);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+  .topnav-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+  .brand { font-weight: 600; color: var(--text-primary); text-decoration: none; }
+  .brand span { color: var(--accent-red); margin-right: 4px; }
+  .topnav-links { display: flex; list-style: none; gap: 1.2rem; }
+  .topnav-links a { color: var(--text-secondary); }
+  .topnav-links a:hover { color: var(--text-primary); }
+
+  /* --- HERO HEADER --- */
+  .hero {
+    max-width: var(--max-width);
+    margin: 4rem auto 3rem;
+    padding: 0 1.5rem;
+  }
+  .hero-meta-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .venue-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+  }
+  .venue-badge.highlight {
+    color: var(--accent-red);
+    background: var(--accent-red-bg);
+    border-color: rgba(217, 56, 58, 0.2);
+  }
+  .hero h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 1.2rem;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    max-width: 900px;
+  }
+
+  /* --- AUTHORS --- */
+  .authors {
+    display: flex;
+    gap: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .author .name { font-weight: 600; font-size: 0.95rem; }
+  .author .affil { font-size: 0.825rem; color: var(--text-muted); }
+
+  .name-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.name-link .name:hover {
+  text-decoration: underline;
+  color: inherit;
+}
+
+  /* --- MAIN LAYOUT (TOC + CONTENT) --- */
+  .layout {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 4rem;
+  }
+
+  .toc {
+    position: sticky;
+    top: 5rem;
+    align-self: start;
+    font-size: 0.85rem;
+  }
+  .toc ol { list-style: none; }
+  .toc li { margin-bottom: 0.6rem; }
+  .toc a { color: var(--text-muted); text-decoration: none; }
+  .toc a:hover { color: var(--text-primary); }
+
+  /* --- CONTENT SECTIONS --- */
+  article { max-width: var(--content-width); }
+  .section { margin-bottom: 4rem; }
+  
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-family: var(--font-serif);
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 2rem 0 0.8rem;
+  }
+
+  p {
+    margin-bottom: 1.2rem;
+    color: var(--text-primary);
+    text-align: justify;
+  }
+  
+  .dropcap::first-letter {
+    font-family: var(--font-serif);
+    font-size: 3.2rem;
+    float: left;
+    line-height: 0.8;
+    margin-right: 0.5rem;
+    color: var(--text-primary);
+  }
+
+  /* --- CALLOUTS & STATS --- */
+  .callout {
+    background: var(--surface);
+    border-left: 3px solid var(--accent-red);
+    padding: 1.25rem 1.5rem;
+    margin: 2rem 0;
+    border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+  .callout p { margin: 0; font-size: 0.95rem; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+  .stat {
+    background: var(--surface);
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat .v { font-size: 1.8rem; font-weight: 700; font-family: var(--font-mono); }
+  .stat .v.red { color: var(--accent-red); }
+  .stat .l { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-top: 0.2rem; }
+
+  /* --- TABLES --- */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 0.9rem;
+    background: var(--surface);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .data-table th, .data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .data-table th { background: #f4f4f2; font-weight: 600; color: var(--text-secondary); }
+  .data-table td.num, .data-table th.num { text-align: right; }
+  .data-table tr.hi { background: var(--accent-red-bg); }
+  code { font-family: var(--font-mono); font-size: 0.85em; background: #f0f0ee; padding: 0.15em 0.3em; border-radius: 3px; }
+
+  /* --- FOOTER --- */
+  footer {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 3rem 1.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .footer-grid {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+  .footer-grid h4 { margin-bottom: 0.5rem; color: var(--text-primary); font-size: 0.9rem; }
+
+  /* Responsive Mobile */
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; gap: 2rem; }
+    .toc { display: none; }
+    .topnav-links { display: none; }
+  }
+
+  /* --- NEURON VISUALIZATION — STEP 3 --- */
+  .nv-wrap{
+    --bg:#ffffff;
+    --bg-alt:#faf9f6;
+    --surface:#ffffff;
+    --surface-2:#f4f4f2;
+    --border:rgba(26,26,26,0.12);
+    --border-strong:rgba(26,26,26,0.22);
+    --text:#1a1a1a;
+    --text-secondary:#555555;
+    --text-muted:#888888;
+    --active:#198f7a;
+    --active-dim:#e5f4f0;
+    --dead:#d9383a;
+    --dead-dim:#fbe8e8;
+    --hook:#b07a00;
+    --font-mono:'IBM Plex Mono', monospace;
+    --font-sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .nv-wrap{
+    background:var(--bg-alt);
+    color:var(--text);
+    font-family:var(--font-sans);
+    padding:48px 24px 40px;
+    border-radius:16px;
+    max-width:960px;
+    margin:0 auto;
+  }
+  .nv-eyebrow{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.06em;
+    color:var(--text-muted);
+    text-transform:uppercase;
+    margin:0 0 6px;
+  }
+  .nv-title{
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 32px;
+    color:var(--text);
+  }
+ 
+  /* Stepper */
+  .nv-steps{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-bottom:28px;
+  }
+  .nv-step-btn{
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    border-radius:10px;
+    padding:14px 14px 12px;
+    text-align:left;
+    cursor:pointer;
+    color:var(--text-secondary);
+    font-family:var(--font-sans);
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .nv-step-btn:hover{ border-color:var(--border-strong); }
+  .nv-step-btn.active{
+    background:var(--surface-2);
+    border-color:var(--active);
+  }
+  .nv-step-num{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--text-muted);
+    display:block;
+    margin-bottom:6px;
+  }
+  .nv-step-btn.active .nv-step-num{ color:var(--active); }
+  .nv-step-label{
+    font-size:13px;
+    font-weight:500;
+    color:var(--text-secondary);
+    line-height:1.35;
+  }
+  .nv-step-btn.active .nv-step-label{ color:var(--text); }
+ 
+  /* Description */
+  .nv-desc{
+    font-size:15px;
+    line-height:1.7;
+    color:var(--text-secondary);
+    max-width:640px;
+    margin:0 0 32px;
+    min-height:52px;
+  }
+ 
+  /* Model toggle */
+  .nv-model-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+  }
+  .nv-model-label{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--text-muted);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+  .nv-model-toggle{
+    display:inline-flex;
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    border-radius:9px;
+    padding:3px;
+    gap:2px;
+  }
+  .nv-model-btn{
+    background:transparent;
+    border:none;
+    color:var(--text-secondary);
+    font-family:var(--font-sans);
+    font-size:13px;
+    font-weight:500;
+    padding:8px 14px;
+    border-radius:7px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .nv-model-btn.active{
+    background:var(--surface-2);
+    color:var(--text);
+    box-shadow:inset 0 0 0 1px var(--border-strong);
+  }
+ 
+  /* Diagram surface */
+  .nv-canvas{
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    border-radius:12px;
+    padding:20px 16px 12px;
+    position:relative;
+  }
+  .nv-canvas svg{ display:block; width:100%; height:auto; }
+ 
+  .nv-legend{
+    display:flex;
+    gap:20px;
+    padding:14px 4px 4px;
+    flex-wrap:wrap;
+  }
+  .nv-legend-item{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:12px;
+    color:var(--text-secondary);
+  }
+  .nv-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+ 
+  .nv-stats{
+    display:flex;
+    gap:12px;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+  .nv-stat{
+    background:var(--surface-2);
+    border-radius:8px;
+    padding:10px 14px;
+    min-width:120px;
+  }
+  .nv-stat-num{
+    font-family:var(--font-mono);
+    font-size:20px;
+    font-weight:500;
+    color:var(--text);
+    display:block;
+  }
+  .nv-stat-num.dead{ color:var(--dead); }
+  .nv-stat-label{
+    font-size:11px;
+    color:var(--text-muted);
+  }
+ 
+  .nv-neuron{ transition:fill .5s ease, opacity .5s ease; }
+  .nv-edge{ stroke:var(--border-strong); stroke-width:1; fill:none; }
+ 
+  .nv-flow-dot{
+    animation:nv-flow 2.2s linear infinite;
+    opacity:0;
+  }
+  @keyframes nv-flow{
+    0%{ opacity:0; }
+    5%{ opacity:1; }
+    92%{ opacity:1; }
+    100%{ opacity:0; }
+  }
+  .nv-hook-line{
+    stroke:var(--hook);
+    stroke-width:1;
+    stroke-dasharray:3 3;
+    opacity:0;
+    transition:opacity .4s ease;
+  }
+  .nv-hook-line.show{ opacity:0.8; }
+  .nv-hook-tag{
+    opacity:0;
+    transition:opacity .4s ease;
+  }
+  .nv-hook-tag.show{ opacity:1; }
+ 
+  @media (prefers-reduced-motion: reduce){
+    .nv-flow-dot{ animation:none; opacity:0.6; }
+  }
+ 
+  @media (max-width:640px){
+    .nv-steps{ grid-template-columns:repeat(2,1fr); }
+    .nv-title{ font-size:19px; }
+  }
+
+  @keyframes nv-blink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+.nv-blink{animation:nv-blink 1s ease-in-out infinite;}
+
+.nv-topstats{
+  display:none;
+  gap:12px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+.nv-topstats.show{ display:flex; }
+.nv-topstats .nv-stat{
+  background:var(--surface-2);
+  border-radius:8px;
+  padding:8px 12px;
+  min-width:100px;
+}
+  .nv-example-label{
+  font-family:var(--font-mono);
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  color:var(--text-muted);
+  margin:16px 0 0;
+}
+
+</style>
+</head>
+<body>
+
+<header class="hero" id="top">
+  <h1>Mapping Dead Neurons After ReLU</h1>
+  <p class="lede">Convolutional neural networks have become widely used for image analysis, including medical imaging applications. However, despite their strong predictive performance, understanding their internal behaviour remains a challenging task.</p>
+</header>
+
+<div class="layout">
+  <nav class="toc">
+    <ol>
+      <li><a href="#introduction">01 · Why examinig dead ReLu? </a></li>
+      <li><a href="#method">02 · A generalist mapping tool</a></li>
+      <li><a href="#case-smallcnn">03 · Case study — SmallCNN</a></li>
+      <li><a href="#case-gmic">04 · Case study — GMIC</a></li>
+      <li><a href="#discussion">05 · Discussion</a></li>
+      <li><a href="#conclusion">06 · Conclusion </a></li>
+      <li><a href="#references">07 · References</a></li>
+    </ol>
+  </nav>
+
+  <article id="main">
+
+  <section class="section" id="introduction">
+
+
+  <h2> 01 — Why examining dead ReLu? </h2>
+  <span class="eyebrow">Context</span>
+    <p>
+  Convolutional neural networks are heavily over-parameterised: the number of trainable weights routinely exceeds the number of training samples, which gives them a strong tendency to memorise rather than generalise on supervised tasks such as classification. The usual remedy is data. For the empirical risk minimiser (ERM) to generalise — that is, for its true risk under the underlying distribution P to stay close to the empirical risk it was trained to minimise — one draws a training set from P large enough for the two to coincide. In medical imaging that remedy is often unavailable: ground-truth labels require expert annotation and, for endpoints such as biopsy-confirmed malignancy, are both expensive and technically difficult to obtain.
+
+When the sample size cannot be increased, the alternative is to reduce the number of parameters to what the task actually requires — parsimony instead of more data. Identifying the parts of a CNN that play no role in the task, in the sense that their ReLU output never leaves zero, is one concrete route: those branches carry weights that are trained but never used, and could in principle be removed. This is the dying ReLU problem, and it costs more than wasted capacity — a unit whose pre-activation is negative for every input receives no gradient, so it cannot recover on its own, and the network's effective learning capacity shrinks accordingly. Several recent studies analyse the phenomenon and propose ways to mitigate it or to bring the affected units back to life.</p>
+    
+  <span class="eyebrow">Related work</span>
+    <p>
+      Work on the dying ReLU falls into three broad families, following the taxonomy proposed by Lu et al. (2020). The first modifies the architecture, and in particular the activation function: leaky ReLU (Maas et al., 2013), ELU (Clevert et al., 2016), SELU (Klambauer et al., 2017) and searched activations (Ramachandran et al., 2017) all preserve some gradient signal on the negative side, although their relative benefit varies across tasks and datasets and each adds at least one hyper-parameter to tune. The second inserts extra operations into the training loop — batch normalisation (Ioffe and Szegedy, 2015), dropout (Srivastava et al., 2014) — at the cost of additional computation per iteration. The third leaves both the architecture and the training procedure untouched and changes only how weights and biases are initialised (Glorot and Bengio, 2010; Saxe et al., 2014; He et al., 2015; Mishkin and Matas, 2016).
+
+Lu et al. (2020) give the first theoretical treatment of the problem in this third setting. They prove that under the symmetric, zero-centred distributions used by essentially all standard schemes, the probability that a ReLU network is born dead — already a constant function at initialisation, and therefore beyond rescue by any gradient-based optimiser — converges to one as depth grows, while at fixed depth it vanishes as width grows. Death is thus a property of the architecture as much as of the initialiser, which explains both why deep narrow networks are hard to train and why the wide networks used in practice rarely collapse outright. Their proposed randomised asymmetric initialisation (RAI) draws a single, randomly chosen entry of each weight-and-bias row from a positive, asymmetric distribution and the remaining entries from a centred Gaussian, with the parameters fixed by a second-moment analysis so as not to trade the dying ReLU for exploding activations; the resulting born-dead probability is substantially lower than under He initialisation. Shin and Karniadakis (2020) move from whole-network death to the number of dead units, distinguish tentative from permanent death, and treat trainability — having few enough permanently dead units for the task at hand — as an upper bound on the success rate of training, which motivates a data-dependent initialisation. More recent work intervenes during training rather than before it: Cai et al. (2021) route the negative phase through a parallel trainable branch instead of discarding it, reconstructing units that a plain ReLU would have killed, while Horuz et al. (2025) apply surrogate gradients to inactive ReLU units (SUGAR) so that they keep receiving updates — a plug-in regulariser that leaves the architecture unchanged.
+
+What all of these approaches presuppose is that one already knows where in the network the problem is. To the best of our knowledge, no simple tool exists for visualising which parts of an architecture never activate across a full forward pass over an empirical dataset — for seeing where the dying ReLU actually occurs in a specific network, and how much of it is affected. That is our contribution.
+    </p> 
+
+    <span class="eyebrow">Our contributions</span>
+    <p>
+      <li>Given a PyTorch model and a PyTorch DataLoader, a user-friendly tool that maps and visualises dead ReLU units across every sample in the loader.</li>
+      <li>Two case studies in supervised learning: object classification on CIFAR-10 (Krizhevsky, 2009) with a small CNN, and detection of malignant patterns in mammograms with GMIC (Shen et al., 2021), a recent multiple-instance-learning CNN architecture. The complete implementation is available on our <a href="https://anonymous.4open.science/r/cnn-activations-37BD" target="_blank">GitHub repository</a>.</li>
+    </p>
+    
+
+    <section class="section" id="method">
+      <h2>02 — A generalist mapping tool</h2>
+      <span class="eyebrow">From activation to visualization</span>
+      <p>
+        To analyze the internal behavior of a network, data is propagated through the model.
+        Hooks then retrieve the internal activations of the layers under study.
+        These activations are analyzed to identify neurons that produce no positive activation
+        across the observed examples, and this information is then linked to a visual representation of the architecture.
+      </p>
+
+<div class="nv-wrap">
+  <h2 class="nv-title">Building the Visualization() function</h2>
+ 
+  <div class="nv-steps" id="nv-steps"></div>
+  <p class="nv-desc" id="nv-desc"></p>
+ 
+  <div class="nv-model-row">
+    <span class="nv-model-label">Illustrative neural network</span>
+  </div>
+
+  <div class="nv-topstats" id="nv-topstats"></div>
+ 
+  <div class="nv-canvas">
+    <svg id="nv-svg" viewBox="0 0 900 300" role="img" aria-label="Neural network diagram"></svg>
+    <div class="nv-legend" id="nv-legend"></div>
+  </div>
+  
+  <p class="nv-example-label" id="nv-example-label"></p>
+ 
+  <div class="nv-stats" id="nv-stats"></div>
+</div>
+
+      <p>
+        Step 3 above is the crux of the method: a neuron that never produces a positive
+        activation across the dataset is what we call a <strong>dead neuron</strong>.
+        We now state this criterion formally.
+      </p>
+
+    </section>
+
+
+<div class="callout">
+  <span class="eyebrow" style="color:var(--accent-red)">
+    Dead neuron criterion
+  </span>
+
+  <p>
+    Let \(a_i^{(k)}(x)\) denote the post-ReLU activation of neuron \(i\) in layer
+    \(k\) for an input image \(x \in \mathcal{D}\). A neuron is considered
+    <em>dead</em> if its activation remains non-positive for every image in the
+    dataset. We define the dead-neuron indicator as:
+  </p>
+
+  <p style="text-align:center; font-size:1.2rem; margin:1.5rem 0;">
+    \[
+    d_i^{(k)}
+    =
+    \mathbf{1}\!\left(
+    \forall x \in \mathcal{D},
+    \; a_i^{(k)}(x)\le 0
+    \right)
+    \]
+  </p>
+
+  <p>
+    where \(\mathbf{1}(\cdot)\) denotes the indicator function.
+  </p>
+</div>
+
+<section class="section" id="case-smallcnn">
+  <h2>03 — Case study : SmallCNN architectur</h2>
+
+  <p>
+    As an initial validation of the proposed visualization pipeline, we applied our method to a lightweight convolutional neural network (SmallCNN). The architecture consists of two convolutional layers, each followed by a ReLU activation function and a max-pooling operation, and two fully connected layers with a ReLU activation after the first fully connected layer. The network was trained on a binary classification task derived from the CIFAR-10 dataset (cat vs. dog) for 10 epochs using a learning rate of <code>1 × 10<sup>−4</sup></code>. The best-performing checkpoint, achieving a test accuracy close to 70%, was selected for all subsequent visualization experiments. The resulting architecture is illustrated below.
+  </p>
+
+  <figure>
+  <img src="visualisation_cnn.png"
+       alt="SmallCNN architecture"
+       style="width:100%;
+              max-width:150px;
+              display:block;
+              margin:1.5rem auto;
+              border:1px solid #ddd;
+              border-radius:8px;">
+
+
+<figcaption>
+  Figure 1. Architecture of the SmallCNN model used for the initial validation.
+</figcaption>
+
+  </figure>
+
+  <p>Observation: no dead neurons were found in the convolutional layers; 18 of the 64 neurons in fc1 (28.1%) never activate. This first, controlled case shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
+
+</section>
+
+    
+
+    <section class="section" id="case-gmic">
+      <h2>04 — Case study : GMIC model</h2>
+      <p>Following the validation of the visualization pipeline on SmallCNN, the method was applied to the GMIC model. GMIC is a multiple-instance-learning CNN for high-resolution breast-cancer screening images, using the model and weights released in the authors' repository, <a href="https://github.com/nyukat/GMIC" target="_blank" rel="noopener">nyukat/GMIC</a>. This model is a more complex architecture combining multiple components, including a global network based on DSNet, a local detection network using ResNet blocks, a MIL attention module, and a fusion branch for the final classification. No fine-tuning was performed for this model, and the pretrained GMIC architecture was directly used for the visualization experiments. The goal is to identify the areas of the network exhibiting low neuronal activity. The obtained results were directly integrated into the model's graphical representation, highlighting in red the layers containing inactive neurons, along with the corresponding number and percentage of affected neurons. This visualization provides a global overview of the activation distribution across the different branches of the model (global, local, and fusion branches).</p>
+
+      <div style="margin: 2.5rem 0;">
+      <iframe
+          src="graph_explorer.html"
+          style="width: 100%; height: 85vh; border: 1px solid var(--border); border-radius: 8px;"
+          title="Interactive dead-neuron graph of GMIC"
+          allowfullscreen
+          allow="fullscreen">
+        </iframe>
+      </div>
+    </section>
+
+    <p>The study of dead neurons provides a better understanding of which parts of the network actually contribute to image analysis, particularly in the layers responsible for extracting visual features, where inactive neurons may indicate a loss of model capacity. Observation: about a third of GMIC's convolutional and linear neurons (5.4M of 16.2M, &asymp;33%) never activate on our sample, concentrated overwhelmingly in the global network (86% of all dead neurons) versus the local network (14%).</p>
+    
+
+    <section class="section" id="conclusion">
+
+      
+  <h2>05 — Conclusion</h2>
+
+      <span class="eyebrow">Interpreting the results</span>
+
+      <p>
+        If the same regions consistently appear inactive across several independent
+        training runs and data splits, the finding is likely to reflect a structural
+        property of the model rather than the outcome of a particular initialization.
+        In such cases, the visualization can guide subsequent interventions proposed
+        in the literature, including alternative activation functions, improved
+        initialization strategies, or methods that preserve gradient flow through
+        inactive neurons. Conversely, if inactive regions vary substantially between
+        runs, they are more likely to result from initialization effects, making
+        retraining or reinitialization preferable to architectural redesign.
+      </p>
+    
+      <p>
+        On <strong>SmallCNN</strong>, dead units were observed exclusively in the
+        fully connected layer <code>fc1</code> (between 6 and 18 neurons out of 64,
+        depending on the training run), while the convolutional layers
+        <code>conv1</code> and <code>conv2</code> exhibited no dead units. This
+        distribution agrees with previous observations that convolutional feature
+        extractors are less prone to permanently inactive neurons because they process
+        diverse spatial patterns, whereas fully connected layers operate on compressed
+        feature representations where redundancy is lower.
+      </p>
+    
+      <p>
+        On <strong>GMIC</strong>, inactive neurons were detected across several
+        branches of the architecture, with higher concentrations in deeper layers.
+        This observation is also consistent with previous studies showing that the
+        dying ReLU phenomenon tends to become more pronounced as network depth
+        increases. Overall, the moderate dead-unit rates observed in SmallCNN and the
+        more widespread inactivity found in GMIC support the idea that architectural
+        depth and complexity amplify the phenomenon. These findings further motivate
+        the use of the proposed visualization tool as a diagnostic aid for deep neural
+        networks, where identifying inactive regions can provide valuable insight into
+        model behaviour before considering pruning or architectural modifications.
+      </p>
+
+  
+  <span class="eyebrow">Concluding remarks</span>
+
+  <p>
+    Finding and visualising dead units is a diagnostic step. Acting on this diagnosis,
+    whether by changing the activation function or pruning inactive units to obtain
+    a more parsimonious model, is a separate task. The dead-unit rates reported here
+    are empirical: they are measured on a single set of weights, obtained from one
+    stochastic gradient descent training run and evaluated on a finite dataset.
+    Demonstrating that a dead region reflects the architecture and the task, rather
+    than a particular training instance, requires additional validation.
+  </p>
+
+  <div class="callout">
+    <span class="eyebrow" style="color:var(--accent-red)">Future work</span>
+    <ul style="margin-left:1.2rem; line-height:1.8;">
+      <li>
+        Cross-validation of dead-unit maps by retraining the network on multiple
+        train/test splits and recomputing activation maps on held-out data.
+      </li>
+      <li>
+        A systematic comparison of initialization strategies, since initialization
+        is known to play a major role in the dying ReLU phenomenon. (Lu et al., 2020; Shin and Karniadakis, 2020).
+      </li>
+    </ul>
+  </div>
+
+
+</section>
+
+
+    <section class="section" id="references">
+      <h2>References</h2>
+      <p style="font-size:0.9rem; line-height:1.9;">
+        Cai, Z., Huang, K. and Peng, C. (2021). Reborn mechanism: rethinking the negative phase information flow in convolutional neural network. arXiv:2106.07026.<br><br>
+        Clevert, D.-A., Unterthiner, T. and Hochreiter, S. (2016). Fast and accurate deep network learning by exponential linear units (ELUs). <em>International Conference on Learning Representations (ICLR)</em>. arXiv:1511.07289.<br><br>
+        Glorot, X. and Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. <em>Proceedings of the 13th International Conference on Artificial Intelligence and Statistics (AISTATS)</em>, 249–256.<br><br>
+        He, K., Zhang, X., Ren, S. and Sun, J. (2015). Delving deep into rectifiers: surpassing human-level performance on ImageNet classification. <em>IEEE International Conference on Computer Vision (ICCV)</em>, 1026–1034.<br><br>
+        Horuz, C. C., Kasenbacher, G., Higuchi, S., Kairat, S., Stoltz, J., Pesl, M., Moser, B. A., Linse, C., Martinetz, T. and Otte, S. (2025). The resurrection of the ReLU. arXiv:2505.22074.<br><br>
+        Ioffe, S. and Szegedy, C. (2015). Batch normalization: accelerating deep network training by reducing internal covariate shift. <em>International Conference on Machine Learning (ICML)</em>.<br><br>
+        Klambauer, G., Unterthiner, T., Mayr, A. and Hochreiter, S. (2017). Self-normalizing neural networks. <em>Advances in Neural Information Processing Systems 30 (NeurIPS)</em>.<br><br>
+        Krizhevsky, A. (2009). Learning multiple layers of features from tiny images. Technical report, University of Toronto.<br><br>
+        Lu, L., Shin, Y., Su, Y. and Karniadakis, G. E. (2020). Dying ReLU and initialization: theory and numerical examples. <em>Communications in Computational Physics</em>, 28(5), 1671–1706. doi:10.4208/cicp.OA-2020-0165. arXiv:1903.06733.<br><br>
+        Maas, A. L., Hannun, A. Y. and Ng, A. Y. (2013). Rectifier nonlinearities improve neural network acoustic models. <em>ICML Workshop on Deep Learning for Audio, Speech and Language Processing</em>.<br><br>
+        Mishkin, D. and Matas, J. (2016). All you need is a good init. <em>International Conference on Learning Representations (ICLR)</em>.<br><br>
+        Ramachandran, P., Zoph, B. and Le, Q. V. (2017). Searching for activation functions. arXiv:1710.05941.<br><br>
+        Saxe, A. M., McClelland, J. L. and Ganguli, S. (2014). Exact solutions to the nonlinear dynamics of learning in deep linear neural networks. <em>International Conference on Learning Representations (ICLR)</em>.<br><br>
+        Shen, Y., Wu, N., Phang, J., Park, J., Liu, K., Tyagi, S., Heacock, L., Kim, S. G., Moy, L., Cho, K. and Geras, K. J. (2021). An interpretable classifier for high-resolution breast cancer screening images utilizing weakly supervised localization. <em>Medical Image Analysis</em>, 68, 101908. doi:10.1016/j.media.2020.101908.<br><br>
+        Shin, Y. and Karniadakis, G. E. (2020). Trainability of ReLU networks and data-dependent initialization. <em>Journal of Machine Learning for Modeling and Computing</em>, 1(1), 39–74. arXiv:1907.09696.<br><br>
+        Srivastava, N., Hinton, G., Krizhevsky, A., Sutskever, I. and Salakhutdinov, R. (2014). Dropout: a simple way to prevent neural networks from overfitting. <em>Journal of Machine Learning Research</em>, 15(1), 1929–1958.
+      </p>
+    </section>
+
+  </article>
+</div>
+
+<script>
+
+(function(){
+  const svgNS = "http://www.w3.org/2000/svg";
+ 
+  const steps = [
+    { title:"Pass data through the model",
+      text:"To analyze a network's internal behavior, data is first propagated through the model. At each layer under study, we can observe the activation values produced by the network." },
+    { title:"Monitor layers with hooks",
+      text:"PyTorch forward hooks automatically capture layer outputs during data propagation. They provide access to internal activations without altering the model architecture." },
+    { title:"Analyze activations",
+      text:"The captured activations are analyzed across the dataset. For each layer, neurons that produce no positive activation across all observed examples can be identified." },
+    { title:"Map analysis to architecture",
+      text:"The activation insights are mapped directly onto the graphical representation of the architecture. Layers containing inactive neurons can thus be identified visually within the network." }
+  ];
+ 
+  // dead:true => neuron never activated (illustrative)
+  const model = {
+      layers:[
+          { name:"Input",   neurons:[0,0,0,0] },
+          { name:"Layer 1",  neurons:[0,0,1,0,0,0] },
+          { name:"Layer 2",  neurons:[0,1,0,0,0,1] },
+          { name:"Layer 3",  neurons:[0,0,0,1,0] },
+          { name:"Layer 4",  neurons:[0,1,0,0] },
+          { name:"Output",   neurons:[0,0] }
+      ]
+  };
+ 
+  let currentStep = 0;
+  let currentModel = "cnn";
+ 
+  const stepsEl = document.getElementById("nv-steps");
+  const descEl = document.getElementById("nv-desc");
+  const toggleEl = document.getElementById("nv-model-toggle");
+  const legendEl = document.getElementById("nv-legend");
+  const statsEl = document.getElementById("nv-stats");
+  const svg = document.getElementById("nv-svg");
+ 
+  function buildSteps(){
+    stepsEl.innerHTML = "";
+    steps.forEach((s,i)=>{
+      const btn = document.createElement("button");
+      btn.className = "nv-step-btn" + (i===currentStep ? " active" : "");
+      btn.innerHTML = `<span class="nv-step-num">0${i+1}</span><span class="nv-step-label">${s.title}</span>`;
+      btn.addEventListener("click", ()=>{ currentStep = i; render(); });
+      stepsEl.appendChild(btn);
+    });
+  }
+ 
+  function layoutPositions(layers){
+    const width = 900, height = 300;
+    const padX = 70, padY = 40;
+    const n = layers.length;
+    const stepX = (width - 2*padX) / (n - 1);
+    return layers.map((layer, li)=>{
+      const x = padX + li*stepX;
+      const count = layer.neurons.length;
+      const stepY = (height - 2*padY) / (count - 1 || 1);
+      const nodes = layer.neurons.map((dead, ni)=>({
+        x, y: padY + ni*stepY, dead
+      }));
+      return { name:layer.name, x, nodes };
+    });
+  }
+ 
+  function el(tag, attrs){
+    const e = document.createElementNS(svgNS, tag);
+    for(const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+ 
+  function render(){
+    buildSteps();
+    descEl.textContent = steps[currentStep].text;
+ 
+    const layers = layoutPositions(model.layers);
+    svg.innerHTML = "";
+ 
+    // edges between consecutive layers (sparse sample for readability)
+    for(let li=0; li<layers.length-1; li++){
+      const a = layers[li].nodes, b = layers[li+1].nodes;
+      a.forEach((na, ai)=>{
+        b.forEach((nb, bi)=>{
+          if((ai+bi) % 3 === 0){
+            svg.appendChild(el("path", {
+              d:`M${na.x},${na.y} C${(na.x+nb.x)/2},${na.y} ${(na.x+nb.x)/2},${nb.y} ${nb.x},${nb.y}`,
+              class:"nv-edge"
+            }));
+          }
+        });
+      });
+    }
+ 
+    // layer name labels
+    layers.forEach(layer=>{
+      const t = el("text", {
+        x:layer.x, y:284, "text-anchor":"middle",
+        "font-family":"IBM Plex Mono, monospace", "font-size":"11px",
+        fill:"var(--text-muted)"
+      });
+      t.textContent = layer.name;
+      svg.appendChild(t);
+    });
+ 
+    const showColor = currentStep >= 2;
+    const showHooks = currentStep === 1;
+    const showFlow = currentStep === 0;
+ 
+    // hooks (step 2)
+    if(showHooks){
+      layers.forEach(layer=>{
+        const topY = 18;
+        svg.appendChild(el("line", {
+          x1:layer.x, y1:topY, x2:layer.x, y2:layer.nodes[0].y - 12,
+          class:"nv-hook-line show"
+        }));
+        const tag = el("g", { class:"nv-hook-tag show" });
+        tag.appendChild(el("rect", {
+          x:layer.x-20, y:topY-14, width:40, height:16, rx:4,
+          fill:"var(--hook)", opacity:"0.18", stroke:"var(--hook)", "stroke-width":"1"
+        }));
+        const label = el("text", {
+          x:layer.x, y:topY-2, "text-anchor":"middle",
+          "font-family":"IBM Plex Mono, monospace", "font-size":"9px",
+          fill:"var(--hook)"
+        });
+        label.textContent = "hook";
+        tag.appendChild(label);
+        svg.appendChild(tag);
+      });
+    }
+ 
+    // neurons
+    layers.forEach(layer=>{
+      layer.nodes.forEach(node=>{
+        let fill = "var(--surface-2)", stroke = "var(--border-strong)";
+        if(showColor){
+          fill = node.dead ? "var(--dead-dim)" : "var(--active-dim)";
+          stroke = node.dead ? "var(--dead)" : "var(--active)";
+        }
+        const blink = currentStep === 3 && node.dead ? " nv-blink" : "";
+        svg.appendChild(el("circle", {
+          cx:node.x, cy:node.y, r:9,
+          fill, stroke, "stroke-width":"1.5",
+          class:"nv-neuron" + blink
+        }));
+      });
+    });
+ 
+    // data flow dots (step 1)
+    if(showFlow){
+      const firstLayer = layers[0];
+      firstLayer.nodes.forEach((node, i)=>{
+        const dot = el("circle", {
+          cx:20, cy:node.y, r:4, fill:"var(--text)",
+          class:"nv-flow-dot"
+        });
+        dot.style.animationDelay = (i*0.15) + "s";
+        svg.appendChild(dot);
+ 
+        // simple traveling dot along a straight path to first layer node
+        const anim = document.createElementNS(svgNS, "animateMotion");
+        anim.setAttribute("dur", "2.2s");
+        anim.setAttribute("repeatCount", "indefinite");
+        anim.setAttribute("path", `M0,0 L${node.x-20},0`);
+        anim.setAttribute("begin", (i*0.15)+"s");
+        dot.appendChild(anim);
+      });
+      // input marker
+      const inLabel = el("text", {
+        x:20, y:284, "text-anchor":"middle",
+        "font-family":"IBM Plex Mono, monospace", "font-size":"11px",
+        fill:"var(--text-muted)"
+      });
+      inLabel.textContent = "input";
+      svg.appendChild(inLabel);
+    }
+ 
+    // legend
+    legendEl.innerHTML = "";
+    if(showColor){
+      legendEl.innerHTML = `
+        <div class="nv-legend-item"><span class="nv-dot" style="background:var(--active)"></span>Active neuron</div>
+        <div class="nv-legend-item"><span class="nv-dot" style="background:var(--dead)"></span>Inactive neuron</div>
+      `;
+    } else if(showHooks){
+      legendEl.innerHTML = `<div class="nv-legend-item"><span class="nv-dot" style="background:var(--hook)"></span>Hook attached to layer</div>`;
+    } else {
+      legendEl.innerHTML = `<div class="nv-legend-item">Propagating examples through the network</div>`;
+    }
+
+    document.getElementById("nv-example-label").textContent = currentStep === 3 ? "Example analysis" : "";
+    
+    // stats (step 4 only)
+    statsEl.innerHTML = "";
+    if(currentStep === 3){
+      const allNeurons = model.layers.flatMap(l=>l.neurons);
+      const total = allNeurons.length;
+      const dead = allNeurons.filter(d=>d===1).length;
+      const pct = Math.round((dead/total)*100);
+      statsEl.innerHTML = `
+      <div class="nv-stat">
+      <span class="nv-stat-num">${total}</span>
+      <span class="nv-stat-label">Observed neurons</span>
+      </div>
+      
+      <div class="nv-stat">
+      <span class="nv-stat-num dead">${dead}</span>
+      <span class="nv-stat-label">Inactive neurons</span>
+      </div>
+      
+      <div class="nv-stat">
+      <span class="nv-stat-num">${pct}%</span>
+      <span class="nv-stat-label">Inactive ratio</span>
+      </div>
+      `;
+    }    
+  }
+ 
+  render();
+})();
+
+</script>
+
+</body>
+</html>
