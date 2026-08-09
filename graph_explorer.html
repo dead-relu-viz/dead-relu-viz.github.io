@@ -7320,8 +7320,8 @@
   <button id="zoom-out">−</button>
   <span class="zoom-readout" id="zoom-readout">15%</span>
   <button id="zoom-in">+</button>
-  <button id="zoom-reset" title="Recentrer la vue">⌂</button>
-  <button id="fullscreen-toggle" title="Agrandir">⤢</button>
+  <button id="zoom-reset" title="Recenter the view">⌂</button>
+  <button id="fullscreen-toggle" title="Expand">⤢</button>
 </div>
 
 <div class="now-viewing" id="now-viewing"></div>
@@ -7344,7 +7344,15 @@
   const svgW = parseFloat(svg.getAttribute('width'));
   const svgH = parseFloat(svg.getAttribute('height'));
 
-  let zoom = 0.12;
+  // Default view: fit the whole graph inside the viewer, whatever width the
+  // embedding page gives it (the article now embeds this file in a wide frame).
+  function fitZoom() {
+    const w = viewer.clientWidth, h = viewer.clientHeight;
+    if (!w || !h) return 0.12;
+    return Math.max(0.03, Math.min(0.35, Math.min(w / svgW, h / svgH) * 0.96));
+  }
+  let OVERVIEW_ZOOM = fitZoom();
+  let zoom = OVERVIEW_ZOOM;
   const minZoom = 0.03, maxZoom = 1.2;
 
   function applyZoom() {
@@ -7354,6 +7362,21 @@
     document.getElementById('zoom-readout').textContent = Math.round(zoom * 100) + '%';
   }
   applyZoom();
+  viewer.scrollLeft = Math.max(0, (svgW * zoom - viewer.clientWidth) / 2);
+  viewer.scrollTop = Math.max(0, (svgH * zoom - viewer.clientHeight) / 2);
+
+  // Refit when the frame is resized (this also covers entering and leaving
+  // fullscreen), but only while the reader is still on the overview.
+  window.addEventListener('resize', () => {
+    const wasOverview = Math.abs(zoom - OVERVIEW_ZOOM) < 0.005;
+    OVERVIEW_ZOOM = fitZoom();
+    if (wasOverview) {
+      zoom = OVERVIEW_ZOOM;
+      applyZoom();
+      viewer.scrollLeft = Math.max(0, (svgW * zoom - viewer.clientWidth) / 2);
+      viewer.scrollTop = Math.max(0, (svgH * zoom - viewer.clientHeight) / 2);
+    }
+  });
 
   // Smooth zoom: animate `zoom` + scroll position together on every frame,
   // so the transform, the (layout) box size, and the scroll position never
@@ -7399,7 +7422,12 @@
   document.getElementById('zoom-in').onclick = () => setZoomKeepCenter(zoom * 1.3);
   document.getElementById('zoom-out').onclick = () => setZoomKeepCenter(zoom / 1.3);
 document.getElementById('zoom-reset').onclick = () => {
-    animateZoom(0.12, (svgW * 0.12 - viewer.clientWidth) / 2, 0);
+    OVERVIEW_ZOOM = fitZoom();
+    animateZoom(
+      OVERVIEW_ZOOM,
+      Math.max(0, (svgW * OVERVIEW_ZOOM - viewer.clientWidth) / 2),
+      Math.max(0, (svgH * OVERVIEW_ZOOM - viewer.clientHeight) / 2)
+    );
   };
 
   // Expand button: open the graph in true browser fullscreen so it's much
@@ -7413,10 +7441,10 @@ document.getElementById('zoom-reset').onclick = () => {
   function updateFsBtn() {
     if (isFullscreen()) {
       fsBtn.textContent = '⤡';
-      fsBtn.title = 'Quitter le plein écran';
+      fsBtn.title = 'Exit fullscreen';
     } else {
       fsBtn.textContent = '⤢';
-      fsBtn.title = 'Agrandir';
+      fsBtn.title = 'Expand';
     }
   }
   fsBtn.onclick = () => {
@@ -7458,7 +7486,6 @@ if (animId) { cancelAnimationFrame(animId); animId = null; }
   // Click anywhere on the graph background to jump straight to a close-up zoom,
   // centered on the point clicked. Click again (or right-click) to zoom back out.
   const CLOSE_UP_ZOOM = 0.9;
-  const OVERVIEW_ZOOM = 0.12;
 
   function zoomToPoint(clientX, clientY, targetZoom) {
     const rect = viewer.getBoundingClientRect();

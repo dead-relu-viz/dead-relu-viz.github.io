@@ -251,6 +251,74 @@
   .data-table tr.hi { background: var(--accent-red-bg); }
   code { font-family: var(--font-mono); font-size: 0.85em; background: #f0f0ee; padding: 0.15em 0.3em; border-radius: 3px; }
 
+  /* --- FIGURES --- */
+  figure { margin: 2rem 0; }
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.5;
+    margin-top: 0.75rem;
+  }
+
+  /* Figures that escape the text column and centre on the viewport */
+  .figure-wide {
+    --gutter: 2rem;
+    --wide-w: min(1500px, calc(100vw - 2 * var(--gutter)));
+    --article-left: calc(max(0px, (100vw - var(--max-width)) / 2) + 1.5rem + 220px + 4rem);
+    width: var(--wide-w);
+    max-width: none;
+    margin: 2.5rem 0 2.5rem calc((100vw - var(--wide-w)) / 2 - var(--article-left));
+  }
+  .figure-wide iframe { display: block; }
+
+  /* --- REPOSITORY BUTTON --- */
+  .contrib-list { margin: 0 0 1rem 1.2rem; }
+  .contrib-list li { margin-bottom: 0.6rem; }
+
+  .repo-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    max-width: 100%;
+    margin: 0 0 0.5rem 1.2rem;
+    padding: 0.7rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .repo-btn:hover {
+    text-decoration: none;
+    border-color: rgba(26,26,26,0.28);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  .repo-btn:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+  .repo-btn-mark { flex-shrink: 0; }
+  .repo-btn-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+  .repo-btn-title { font-size: 0.92rem; font-weight: 600; }
+  .repo-btn-url {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .repo-btn-arrow {
+    margin-left: auto;
+    padding-left: 1.2rem;
+    color: var(--text-muted);
+    transition: transform .15s ease, color .15s ease;
+  }
+  .repo-btn:hover .repo-btn-arrow { transform: translateX(2px); color: var(--accent-red); }
+
+  /* Anchored headings clear the sticky navigation bar */
+  section[id], span[id] { scroll-margin-top: 5rem; }
+
   /* --- FOOTER --- */
   footer {
     border-top: 1px solid var(--border);
@@ -273,6 +341,8 @@
     .layout { grid-template-columns: 1fr; gap: 2rem; }
     .toc { display: none; }
     .topnav-links { display: none; }
+    .figure-wide { --gutter: 1.5rem; --article-left: 1.5rem; }
+    .repo-btn { margin-left: 0; }
   }
 
   /* --- NEURON VISUALIZATION — STEP 3 --- */
@@ -527,19 +597,18 @@
 
 <header class="hero" id="top">
   <h1>Mapping Dead Neurons After ReLU</h1>
-  <p class="lede">Convolutional neural networks have become widely used for image analysis, including medical imaging applications. However, despite their strong predictive performance, understanding their internal behaviour remains a challenging task.</p>
+  <p class="lede">Convolutional neural networks have become widely used for image analysis, including medical imaging applications. However, despite their strong predictive performance, understanding their internal behavior remains a challenging task.</p>
 </header>
 
 <div class="layout">
   <nav class="toc">
     <ol>
-      <li><a href="#introduction">01 · Why examinig dead ReLu? </a></li>
+      <li><a href="#introduction">01 · Why examine dead ReLUs?</a></li>
       <li><a href="#method">02 · A generalist mapping tool</a></li>
       <li><a href="#case-smallcnn">03 · Case study — SmallCNN</a></li>
       <li><a href="#case-gmic">04 · Case study — GMIC</a></li>
-      <li><a href="#discussion">05 · Discussion</a></li>
-      <li><a href="#conclusion">06 · Conclusion </a></li>
-      <li><a href="#references">07 · References</a></li>
+      <li><a href="#conclusion">05 · Concluding remarks</a></li>
+      <li><a href="#references">06 · References</a></li>
     </ol>
   </nav>
 
@@ -548,28 +617,40 @@
   <section class="section" id="introduction">
 
 
-  <h2> 01 — Why examining dead ReLu? </h2>
+  <h2>01 — Why examine dead ReLUs?</h2>
   <span class="eyebrow">Context</span>
     <p>
-  Convolutional neural networks are heavily over-parameterised: the number of trainable weights routinely exceeds the number of training samples, which gives them a strong tendency to memorise rather than generalise on supervised tasks such as classification. The usual remedy is data. For the empirical risk minimiser (ERM) to generalise — that is, for its true risk under the underlying distribution P to stay close to the empirical risk it was trained to minimise — one draws a training set from P large enough for the two to coincide. In medical imaging that remedy is often unavailable: ground-truth labels require expert annotation and, for endpoints such as biopsy-confirmed malignancy, are both expensive and technically difficult to obtain.
+  Convolutional neural networks are heavily over-parameterized: the number of trainable weights routinely exceeds the number of training samples, which gives them a strong tendency to memorize rather than generalize on supervised tasks such as classification. The usual remedy is data. For the empirical risk minimizer (ERM) to generalize — that is, for its true risk under the underlying distribution P to stay close to the empirical risk it was trained to minimize — one draws a training set from P large enough for the two to coincide. In medical imaging that remedy is often unavailable: ground-truth labels require expert annotation and, for endpoints such as biopsy-confirmed malignancy, are both expensive and technically difficult to obtain.
 
-When the sample size cannot be increased, the alternative is to reduce the number of parameters to what the task actually requires — parsimony instead of more data. Identifying the parts of a CNN that play no role in the task, in the sense that their ReLU output never leaves zero, is one concrete route: those branches carry weights that are trained but never used, and could in principle be removed. This is the dying ReLU problem, and it costs more than wasted capacity — a unit whose pre-activation is negative for every input receives no gradient, so it cannot recover on its own, and the network's effective learning capacity shrinks accordingly. Several recent studies analyse the phenomenon and propose ways to mitigate it or to bring the affected units back to life.</p>
+When the sample size cannot be increased, the alternative is to reduce the number of parameters to what the task actually requires — parsimony instead of more data. Identifying the parts of a CNN that play no role in the task, in the sense that their ReLU output never leaves zero, is one concrete route: those branches carry weights that are trained but never used, and could in principle be removed. This is the dying ReLU problem, and it costs more than wasted capacity — a unit whose pre-activation is negative for every input receives no gradient, so it cannot recover on its own, and the network's effective learning capacity shrinks accordingly. Several recent studies analyze the phenomenon and propose ways to mitigate it or to bring the affected units back to life.</p>
     
-  <span class="eyebrow">Related work</span>
+  <span class="eyebrow" id="related-work">Related work</span>
     <p>
-      Work on the dying ReLU falls into three broad families, following the taxonomy proposed by Lu et al. (2020). The first modifies the architecture, and in particular the activation function: leaky ReLU (Maas et al., 2013), ELU (Clevert et al., 2016), SELU (Klambauer et al., 2017) and searched activations (Ramachandran et al., 2017) all preserve some gradient signal on the negative side, although their relative benefit varies across tasks and datasets and each adds at least one hyper-parameter to tune. The second inserts extra operations into the training loop — batch normalisation (Ioffe and Szegedy, 2015), dropout (Srivastava et al., 2014) — at the cost of additional computation per iteration. The third leaves both the architecture and the training procedure untouched and changes only how weights and biases are initialised (Glorot and Bengio, 2010; Saxe et al., 2014; He et al., 2015; Mishkin and Matas, 2016).
+      Work on the dying ReLU falls into three broad families, following the taxonomy proposed by Lu et al. (2020). The first modifies the architecture, and in particular the activation function: leaky ReLU (Maas et al., 2013), ELU (Clevert et al., 2016), SELU (Klambauer et al., 2017) and searched activations (Ramachandran et al., 2017) all preserve some gradient signal on the negative side, although their relative benefit varies across tasks and datasets and each adds at least one hyper-parameter to tune. The second inserts extra operations into the training loop — batch normalization (Ioffe and Szegedy, 2015), dropout (Srivastava et al., 2014) — at the cost of additional computation per iteration. The third leaves both the architecture and the training procedure untouched and changes only how weights and biases are initialized (Glorot and Bengio, 2010; Saxe et al., 2014; He et al., 2015; Mishkin and Matas, 2016).
 
-Lu et al. (2020) give the first theoretical treatment of the problem in this third setting. They prove that under the symmetric, zero-centred distributions used by essentially all standard schemes, the probability that a ReLU network is born dead — already a constant function at initialisation, and therefore beyond rescue by any gradient-based optimiser — converges to one as depth grows, while at fixed depth it vanishes as width grows. Death is thus a property of the architecture as much as of the initialiser, which explains both why deep narrow networks are hard to train and why the wide networks used in practice rarely collapse outright. Their proposed randomised asymmetric initialisation (RAI) draws a single, randomly chosen entry of each weight-and-bias row from a positive, asymmetric distribution and the remaining entries from a centred Gaussian, with the parameters fixed by a second-moment analysis so as not to trade the dying ReLU for exploding activations; the resulting born-dead probability is substantially lower than under He initialisation. Shin and Karniadakis (2020) move from whole-network death to the number of dead units, distinguish tentative from permanent death, and treat trainability — having few enough permanently dead units for the task at hand — as an upper bound on the success rate of training, which motivates a data-dependent initialisation. More recent work intervenes during training rather than before it: Cai et al. (2021) route the negative phase through a parallel trainable branch instead of discarding it, reconstructing units that a plain ReLU would have killed, while Horuz et al. (2025) apply surrogate gradients to inactive ReLU units (SUGAR) so that they keep receiving updates — a plug-in regulariser that leaves the architecture unchanged.
+Lu et al. (2020) give the first theoretical treatment of the problem in this third setting. They prove that under the symmetric, zero-centered distributions used by essentially all standard schemes, the probability that a ReLU network is born dead — already a constant function at initialization, and therefore beyond rescue by any gradient-based optimizer — converges to one as depth grows, while at fixed depth it vanishes as width grows. Death is thus a property of the architecture as much as of the initializer, which explains both why deep narrow networks are hard to train and why the wide networks used in practice rarely collapse outright. Their proposed randomized asymmetric initialization (RAI) draws a single, randomly chosen entry of each weight-and-bias row from a positive, asymmetric distribution and the remaining entries from a centered Gaussian, with the parameters fixed by a second-moment analysis so as not to trade the dying ReLU for exploding activations; the resulting born-dead probability is substantially lower than under He initialization. Shin and Karniadakis (2020) move from whole-network death to the number of dead units, distinguish tentative from permanent death, and treat trainability — having few enough permanently dead units for the task at hand — as an upper bound on the success rate of training, which motivates a data-dependent initialization. More recent work intervenes during training rather than before it: Cai et al. (2021) route the negative phase through a parallel trainable branch instead of discarding it, reconstructing units that a plain ReLU would have killed, while Horuz et al. (2025) apply surrogate gradients to inactive ReLU units (SUGAR) so that they keep receiving updates — a plug-in regularizer that leaves the architecture unchanged.
 
-What all of these approaches presuppose is that one already knows where in the network the problem is. To the best of our knowledge, no simple tool exists for visualising which parts of an architecture never activate across a full forward pass over an empirical dataset — for seeing where the dying ReLU actually occurs in a specific network, and how much of it is affected. That is our contribution.
+What all of these approaches presuppose is that one already knows where in the network the problem is. To the best of our knowledge, no simple tool exists for visualizing which parts of an architecture never activate across a full forward pass over an empirical dataset — for seeing where the dying ReLU actually occurs in a specific network, and how much of it is affected. That is our contribution.
     </p> 
 
     <span class="eyebrow">Our contributions</span>
-    <p>
-      <li>Given a PyTorch model and a PyTorch DataLoader, a user-friendly tool that maps and visualises dead ReLU units across every sample in the loader.</li>
-      <li>Two case studies in supervised learning: object classification on CIFAR-10 (Krizhevsky, 2009) with a small CNN, and detection of malignant patterns in mammograms with GMIC (Shen et al., 2021), a recent multiple-instance-learning CNN architecture. The complete implementation is available on our <a href="https://anonymous.4open.science/r/cnn-activations-37BD" target="_blank">GitHub repository</a>.</li>
-    </p>
-    
+    <ul class="contrib-list">
+      <li>Given a PyTorch model and a PyTorch DataLoader, a user-friendly tool that maps and visualizes dead ReLU units across every sample in the loader.</li>
+      <li>Two case studies in supervised learning: object classification on CIFAR-10 (Krizhevsky, 2009) with a small CNN, and detection of malignant patterns in mammograms with GMIC (Shen et al., 2021), a recent multiple-instance-learning CNN architecture. The complete implementation is available on our GitHub repository.</li>
+    </ul>
+
+    <a class="repo-btn" href="https://anonymous.4open.science/r/cnn-activations-37BD" target="_blank" rel="noopener">
+      <svg class="repo-btn-mark" width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+      </svg>
+      <span class="repo-btn-text">
+        <span class="repo-btn-title">GitHub repository</span>
+        <span class="repo-btn-url">anonymous.4open.science/r/cnn-activations-37BD</span>
+      </span>
+      <span class="repo-btn-arrow" aria-hidden="true">&rarr;</span>
+    </a>
+
+    </section>
 
     <section class="section" id="method">
       <h2>02 — A generalist mapping tool</h2>
@@ -609,9 +690,6 @@ What all of these approaches presuppose is that one already knows where in the n
         We now state this criterion formally.
       </p>
 
-    </section>
-
-
 <div class="callout">
   <span class="eyebrow" style="color:var(--accent-red)">
     Dead neuron criterion
@@ -640,108 +718,126 @@ What all of these approaches presuppose is that one already knows where in the n
   </p>
 </div>
 
+    </section>
+
 <section class="section" id="case-smallcnn">
-  <h2>03 — Case study : SmallCNN architectur</h2>
+  <h2>03 — Case study: SmallCNN architecture</h2>
 
   <p>
     As an initial validation of the proposed visualization pipeline, we applied our method to a lightweight convolutional neural network (SmallCNN). The architecture consists of two convolutional layers, each followed by a ReLU activation function and a max-pooling operation, and two fully connected layers with a ReLU activation after the first fully connected layer. The network was trained on a binary classification task derived from the CIFAR-10 dataset (cat vs. dog) for 10 epochs using a learning rate of <code>1 × 10<sup>−4</sup></code>. The best-performing checkpoint, achieving a test accuracy close to 70%, was selected for all subsequent visualization experiments. The resulting architecture is illustrated below.
   </p>
 
   <figure>
-  <img src="visualisation_cnn.png"
-       alt="SmallCNN architecture"
-       style="width:100%;
-              max-width:150px;
-              display:block;
-              margin:1.5rem auto;
-              border:1px solid #ddd;
-              border-radius:8px;">
-
-
-<figcaption>
-  Figure 1. Architecture of the SmallCNN model used for the initial validation.
-</figcaption>
-
+    <img src="visualisation_cnn.png"
+         alt="SmallCNN architecture"
+         style="width:100%;
+                max-width:300px;
+                display:block;
+                margin:0 auto;
+                border:1px solid #ddd;
+                border-radius:8px;">
+    <figcaption>
+      Figure 1. Architecture of the SmallCNN model used for the initial validation.
+    </figcaption>
   </figure>
 
-  <p>Observation: no dead neurons were found in the convolutional layers; 18 of the 64 neurons in fc1 (28.1%) never activate. This first, controlled case shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
+  <p>Observation: dead neurons are rare overall (???% of all units) and confined to a single layer. None were found in the convolutional layers, and none in the final FC layer — the latter is expected of a trained classifier, since a dead unit there would make the output constant in binary classification. Every dead unit lies in fc1, the penultimate layer, where 18 of 64 neurons (28.1%) never activate. This first, controlled case already shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
 
 </section>
 
     
 
     <section class="section" id="case-gmic">
-      <h2>04 — Case study : GMIC model</h2>
+      <h2>04 — Case study: GMIC model</h2>
       <p>Following the validation of the visualization pipeline on SmallCNN, the method was applied to the GMIC model. GMIC is a multiple-instance-learning CNN for high-resolution breast-cancer screening images, using the model and weights released in the authors' repository, <a href="https://github.com/nyukat/GMIC" target="_blank" rel="noopener">nyukat/GMIC</a>. This model is a more complex architecture combining multiple components, including a global network based on DSNet, a local detection network using ResNet blocks, a MIL attention module, and a fusion branch for the final classification. No fine-tuning was performed for this model, and the pretrained GMIC architecture was directly used for the visualization experiments. The goal is to identify the areas of the network exhibiting low neuronal activity. The obtained results were directly integrated into the model's graphical representation, highlighting in red the layers containing inactive neurons, along with the corresponding number and percentage of affected neurons. This visualization provides a global overview of the activation distribution across the different branches of the model (global, local, and fusion branches).</p>
 
-      <div style="margin: 2.5rem 0;">
-      <iframe
-          src="graph_explorer.html"
-          style="width: 100%; height: 85vh; border: 1px solid var(--border); border-radius: 8px;"
-          title="Interactive dead-neuron graph of GMIC"
-          allowfullscreen
-          allow="fullscreen">
+      <figure class="figure-wide">
+        <iframe
+            src="graph_explorer.html"
+            style="width: 100%; height: 85vh; border: 1px solid var(--border); border-radius: 8px;"
+            title="Interactive dead-neuron graph of GMIC"
+            allowfullscreen
+            allow="fullscreen">
         </iframe>
-      </div>
+        <figcaption>
+          Figure 2. Interactive visualization of the dead ReLU units in GMIC. The visualization of the architecture is centered on trainable weights, which are of interest in this work.
+        </figcaption>
+      </figure>
+
+      <p>The study of dead neurons provides a better understanding of which parts of the network actually contribute to image analysis, particularly in the layers responsible for extracting visual features. Observation: about a third of GMIC's convolutional and linear neurons (5.4M of 16.2M, &asymp;33%) never activate their subsequent ReLU on our sample, concentrated overwhelmingly in the global network (86% of all dead neurons) versus the local network (14%). Unlike the CNN in the CIFAR-10 case above, the convolutional layers are affected here: between 17% and 70% of their neurons are dead depending on the layer, with no clear positional trend — neither the layers closest to the input nor those closest to the output are systematically "deader". The FC layer of the fusion network (see GMIC for module details) is likewise affected, with roughly 35% dead neurons. As before, this is the penultimate layer, immediately preceding the classification FC.</p>
+
+      <figure>
+        <img src="position_in_gmic.png"
+             alt="Position of the penultimate FC layer in GMIC"
+             style="width:100%;
+                    max-width:150px;
+                    display:block;
+                    margin:0 auto;
+                    border:1px solid #ddd;
+                    border-radius:8px;">
+        <figcaption>
+          Figure 3. Position of the penultimate FC layer in the whole GMIC architecture.
+        </figcaption>
+      </figure>
     </section>
 
-    <p>The study of dead neurons provides a better understanding of which parts of the network actually contribute to image analysis, particularly in the layers responsible for extracting visual features, where inactive neurons may indicate a loss of model capacity. Observation: about a third of GMIC's convolutional and linear neurons (5.4M of 16.2M, &asymp;33%) never activate on our sample, concentrated overwhelmingly in the global network (86% of all dead neurons) versus the local network (14%).</p>
-    
 
     <section class="section" id="conclusion">
 
-      
-  <h2>05 — Conclusion</h2>
-
-      <span class="eyebrow">Interpreting the results</span>
-
-      <p>
-        If the same regions consistently appear inactive across several independent
-        training runs and data splits, the finding is likely to reflect a structural
-        property of the model rather than the outcome of a particular initialization.
-        In such cases, the visualization can guide subsequent interventions proposed
-        in the literature, including alternative activation functions, improved
-        initialization strategies, or methods that preserve gradient flow through
-        inactive neurons. Conversely, if inactive regions vary substantially between
-        runs, they are more likely to result from initialization effects, making
-        retraining or reinitialization preferable to architectural redesign.
-      </p>
-    
-      <p>
-        On <strong>SmallCNN</strong>, dead units were observed exclusively in the
-        fully connected layer <code>fc1</code> (between 6 and 18 neurons out of 64,
-        depending on the training run), while the convolutional layers
-        <code>conv1</code> and <code>conv2</code> exhibited no dead units. This
-        distribution agrees with previous observations that convolutional feature
-        extractors are less prone to permanently inactive neurons because they process
-        diverse spatial patterns, whereas fully connected layers operate on compressed
-        feature representations where redundancy is lower.
-      </p>
-    
-      <p>
-        On <strong>GMIC</strong>, inactive neurons were detected across several
-        branches of the architecture, with higher concentrations in deeper layers.
-        This observation is also consistent with previous studies showing that the
-        dying ReLU phenomenon tends to become more pronounced as network depth
-        increases. Overall, the moderate dead-unit rates observed in SmallCNN and the
-        more widespread inactivity found in GMIC support the idea that architectural
-        depth and complexity amplify the phenomenon. These findings further motivate
-        the use of the proposed visualization tool as a diagnostic aid for deep neural
-        networks, where identifying inactive regions can provide valuable insight into
-        model behaviour before considering pruning or architectural modifications.
-      </p>
-
-  
-  <span class="eyebrow">Concluding remarks</span>
+  <h2>05 — Concluding remarks</h2>
 
   <p>
-    Finding and visualising dead units is a diagnostic step. Acting on this diagnosis,
-    whether by changing the activation function or pruning inactive units to obtain
-    a more parsimonious model, is a separate task. The dead-unit rates reported here
-    are empirical: they are measured on a single set of weights, obtained from one
-    stochastic gradient descent training run and evaluated on a finite dataset.
-    Demonstrating that a dead region reflects the architecture and the task, rather
-    than a particular training instance, requires additional validation.
+    Across both settings, dead units are numerous and show no clear positional
+    pattern — with one exception: the penultimate fully connected layer is dead in a
+    similar proportion (&asymp;30%) in the CIFAR-10 CNN and in GMIC's fusion network,
+    despite the distance between the two in scale, data and task.
+  </p>
+
+  <p>
+    In GMIC, the distribution is also strongly asymmetric across modules: most dead
+    units sit in the global network, whose role is to extract six regions of interest
+    (ROI) from the high-resolution mammogram for the local network to process before
+    classification. That so large a share of this module is permanently inactive
+    suggests that ROI extraction is a less demanding task than its parameter count
+    implies, and might be handled by a more parsimonious model.
+  </p>
+
+  <p>
+    More broadly, the dead-weight counts we measure (<strong>___</strong> in the CNN,
+    <strong>___</strong> in GMIC) indicate that CNNs trained for classification are far
+    from parsimonious — consistent with existing work on over-parameterization
+    <strong>[refs?]</strong> — and our tool makes this measurable in two very different
+    settings.
+  </p>
+
+  <p>
+    The recurrence of &asymp;30% at the penultimate FC layer is worth flagging for a
+    second reason. Work on uncertainty quantification with Monte Carlo Dropout (MCD)
+    establishes empirically that dropout should be placed at the penultimate FC layer
+    in classification tasks to obtain the most monotonic<sup>*</sup> uncertainty
+    estimates — a form of weak calibration, far from the strict definition
+    <em>E</em>[<em>Y</em>&nbsp;|&nbsp;<em>f</em>(<em>X</em>)] =
+    <em>f</em>(<em>X</em>). Whether the two observations are connected is an open
+    question we intend to examine empirically. They may equally be incidental:
+    establishing that the pattern is robust would require more datasets and more
+    architectures.
+  </p>
+
+  <p style="font-size:0.9em">
+    <sup>*</sup> Monotonicity here refers to the relation between the empirical error
+    rate and the threshold applied to the MCD uncertainty estimate
+    (<a href="https://openreview.net/pdf?id=icfTOGnHz2" target="_blank" rel="noopener">openreview.net/pdf?id=icfTOGnHz2</a>).
+  </p>
+
+  <p>
+    With hindsight, finding and visualizing dead units is a diagnostic step. Acting on
+    the diagnosis — changing the activation function, or dropping inactive units to
+    obtain a more parsimonious model — is a separate and well-documented task
+    (see <a href="#related-work">Related work</a>). The rates reported here are also
+    empirical in the narrow sense: they are measured on a single set of weights,
+    obtained from one stochastic gradient descent run and evaluated on a finite
+    dataset. Showing that a dead region reflects the architecture and the task, rather
+    than one training instance, requires additional validation.
   </p>
 
   <div class="callout">
@@ -752,12 +848,33 @@ What all of these approaches presuppose is that one already knows where in the n
         train/test splits and recomputing activation maps on held-out data.
       </li>
       <li>
-        A systematic comparison of initialization strategies, since initialization
-        is known to play a major role in the dying ReLU phenomenon. (Lu et al., 2020; Shin and Karniadakis, 2020).
+        A systematic comparison of initialization strategies, since initialization is
+        known to play a major role in the dying ReLU phenomenon
+        (Lu et al., 2020; Shin and Karniadakis, 2020).
+      </li>
+      <li>
+        A theoretical study of <code>fc1</code>, feasibility permitting.
+      </li>
+      <li>
+        An empirical test of the link between dead units at the penultimate FC layer
+        and the quality of MCD uncertainty estimates.
+      </li>
+      <li>
+        Acting on the diagnosis — changing the activation, dropping robustly dead
+        units — and measuring the effect on the tasks studied here: predictive
+        performance, generalization, training cost.
       </li>
     </ul>
   </div>
 
+  <p>
+    Our diagnostic package provides a flexible, easy-to-use and computationally cheap
+    visualization tool for the dying ReLU problem, applicable to any PyTorch
+    architecture and its DataLoader, and designed to accommodate complex
+    state-of-the-art models with many layers. Users obtain actionable insight in very
+    little time, and can decide from it which steps to take to improve the activation
+    regime of their architecture.
+  </p>
 
 </section>
 
