@@ -263,15 +263,12 @@
 
   /* Figures that escape the text column and centre on the viewport */
   .figure-wide {
-    --gutter: 2rem;
-    --wide-w: min(1280px, calc(100vw - 2 * var(--gutter)));
+    --gutter: 2rem;          /* clearance kept on the right edge of the window */
+    --overhang: 2.5rem;      /* how far the figure reaches left of the text column */
     --article-left: calc(max(0px, (100vw - var(--max-width)) / 2) + 1.5rem + 220px + 4rem);
-    width: var(--wide-w);
+    width: min(1240px, calc(100vw - var(--gutter) - var(--article-left) + var(--overhang)));
     max-width: none;
-    margin: 2.5rem 0 2.5rem calc((100vw - var(--wide-w)) / 2 - var(--article-left));
-    position: relative;
-    z-index: 2;
-    background: var(--bg);
+    margin: 2.5rem 0 2.5rem calc(0px - var(--overhang));
   }
   .figure-wide iframe { display: block; }
 
@@ -344,7 +341,7 @@
     .layout { grid-template-columns: 1fr; gap: 2rem; }
     .toc { display: none; }
     .topnav-links { display: none; }
-    .figure-wide { --gutter: 1.5rem; --article-left: 1.5rem; }
+    .figure-wide { --gutter: 1.5rem; --overhang: 0px; --article-left: 1.5rem; }
     .repo-btn { margin-left: 0; }
   }
 
