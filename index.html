@@ -685,7 +685,7 @@ What all of these approaches presuppose is that one already knows where in the n
 </div>
 
       <p>
-        Step 3 above is the crux of the method: a neuron that never produces a positive
+        Step 3 above is the core of the method: a neuron that never produces a positive
         activation across the dataset is what we call a <strong>dead neuron</strong>.
         We now state this criterion formally.
       </p>
@@ -741,7 +741,7 @@ What all of these approaches presuppose is that one already knows where in the n
     </figcaption>
   </figure>
 
-  <p>Observation: dead neurons are rare overall (???% of all units) and confined to a single layer. None were found in the convolutional layers, and none in the final FC layer — the latter is expected of a trained classifier, since a dead unit there would make the output constant in binary classification. Every dead unit lies in fc1, the penultimate layer, where 18 of 64 neurons (28.1%) never activate. This first, controlled case already shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
+  <p>Observation: dead neurons are rare overall (???% of all units) and confined to a single layer. None were found in the convolutional layers, and none in the final FC layer — the latter is expected of a trained classifier, since a dead unit there would make the output constant in binary classification. Every dead unit lies in fc1, the penultimate layer, where 18 of 64 neurons (28.1%) never activate. This first case already shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
 
 </section>
 
@@ -760,20 +760,17 @@ What all of these approaches presuppose is that one already knows where in the n
             allow="fullscreen">
         </iframe>
         <figcaption>
-          Figure 2. Interactive visualization of the dead ReLU units in GMIC. The lower
-          part of the architecture is not shown: it contains no trainable weights, so it
-          is outside the scope of this analysis, and including it made the graph harder
-          to read.
+          Figure 2. Interactive visualization of the dead ReLU units in GMIC. 
         </figcaption>
       </figure>
 
-      <p>The study of dead neurons provides a better understanding of which parts of the network actually contribute to image analysis, particularly in the layers responsible for extracting visual features. Observation: about a third of GMIC's convolutional and linear neurons (5.4M of 16.2M, &asymp;33%) never activate their subsequent ReLU on our sample, concentrated overwhelmingly in the global network (86% of all dead neurons) versus the local network (14%). Unlike the CNN in the CIFAR-10 case above, the convolutional layers are affected here: between 17% and 70% of their neurons are dead depending on the layer, with no clear positional trend — neither the layers closest to the input nor those closest to the output are systematically "deader". The FC layer of the fusion network (see GMIC for module details) is likewise affected, with roughly 35% dead neurons. As before, this is the penultimate layer, immediately preceding the classification FC.</p>
+      <p>Observation: about a third of GMIC's convolutional and linear neurons (5.4M of 16.2M, &asymp;33%) never activate their subsequent ReLU on the dataset, concentrated overwhelmingly in the global network (86% of all dead neurons) versus the local+fusion network (14%). Unlike the CNN in the CIFAR-10 case above, the convolutional layers are affected here: among convolutional layers with dead neurons, between 17% and 70% of their neurons are dead, with no clear positional trend: neither the layers closest to the input nor those closest to the output are systematically "deader". The FC layer of the fusion network (see GMIC for module details) is likewise affected, with roughly 35% dead neurons. As before (CIFAR-10 case), this is the penultimate layer, immediately preceding the classification FC.</p>
 
       <figure>
         <img src="position_in_gmic.png"
              alt="Position of the penultimate FC layer in GMIC"
              style="width:100%;
-                    max-width:150px;
+                    max-width:480px;
                     display:block;
                     margin:0 auto;
                     border:1px solid #ddd;
@@ -791,7 +788,7 @@ What all of these approaches presuppose is that one already knows where in the n
 
   <p>
     Across both settings, dead units are numerous and show no clear positional
-    pattern — with one exception: the penultimate fully connected layer is dead in a
+    pattern, with one exception: the penultimate fully connected layer is dead in a
     similar proportion (&asymp;30%) in the CIFAR-10 CNN and in GMIC's fusion network,
     despite the distance between the two in scale, data and task.
   </p>
@@ -806,10 +803,10 @@ What all of these approaches presuppose is that one already knows where in the n
   </p>
 
   <p>
-    More broadly, the dead-weight counts we measure (<strong>___</strong> in the CNN,
-    <strong>___</strong> in GMIC) indicate that CNNs trained for classification are far
+    More broadly, the dead-weight counts we measure (<strong>???</strong> in the CNN,
+    <strong>???</strong> in GMIC) indicate that CNNs trained for classification are far
     from parsimonious — consistent with existing work on over-parameterization
-    <strong>[refs?]</strong> — and our tool makes this measurable in two very different
+    <strong>[refs?]</strong>, and our tool makes this measurable in two very different
     settings.
   </p>
 
@@ -821,15 +818,15 @@ What all of these approaches presuppose is that one already knows where in the n
     estimates — a form of weak calibration, far from the strict definition
     <em>E</em>[<em>Y</em>&nbsp;|&nbsp;<em>f</em>(<em>X</em>)] =
     <em>f</em>(<em>X</em>). Whether the two observations are connected is an open
-    question we intend to examine empirically. They may equally be incidental:
-    establishing that the pattern is robust would require more datasets and more
+    question. They may equally be incidental:
+    establishing that the pattern is robust would require first more datasets and more
     architectures.
   </p>
 
   <p style="font-size:0.9em">
     <sup>*</sup> Monotonicity here refers to the relation between the empirical error
     rate and the threshold applied to the MCD uncertainty estimate
-    (<a href="https://openreview.net/pdf?id=icfTOGnHz2" target="_blank" rel="noopener">openreview.net/pdf?id=icfTOGnHz2</a>).
+    (<a href="https://openreview.net/forum?id=icfTOGnHz2" target="_blank" rel="noopener">https://openreview.net/forum?id=icfTOGnHz2</a>).
   </p>
 
   <p>
@@ -856,15 +853,15 @@ What all of these approaches presuppose is that one already knows where in the n
         (Lu et al., 2020; Shin and Karniadakis, 2020).
       </li>
       <li>
-        A theoretical study of <code>fc1</code>, feasibility permitting.
+        A theoretical study of <code>fc1</code>.
       </li>
       <li>
         An empirical test of the link between dead units at the penultimate FC layer
         and the quality of MCD uncertainty estimates.
       </li>
       <li>
-        Acting on the diagnosis — changing the activation, dropping robustly dead
-        units — and measuring the effect on the tasks studied here: predictive
+        Acting on the diagnosis: changing the activation, dropping robustly dead
+        units, and measuring the effect on the tasks studied here: predictive
         performance, generalization, training cost.
       </li>
     </ul>
