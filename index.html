@@ -620,15 +620,15 @@
   <h2>01 — Why examine dead ReLUs?</h2>
   <span class="eyebrow">Context</span>
     <p>
-  Convolutional neural networks are heavily over-parameterized: the number of trainable weights routinely exceeds the number of training samples, which gives them a strong tendency to memorize rather than generalize on supervised tasks such as classification. The usual remedy is data. For the empirical risk minimizer (ERM) to generalize — that is, for its true risk under the underlying distribution P to stay close to the empirical risk it was trained to minimize — one draws a training set from P large enough for the two to coincide. In medical imaging that remedy is often out of reach: ground-truth labels require expert annotation and, for endpoints such as biopsy-confirmed malignancy, are both expensive and technically difficult to obtain.</p>
+  Convolutional neural networks are heavily over-parameterized: the number of trainable weights routinely exceeds the number of training samples, which gives them a strong tendency to memorize rather than generalize on supervised tasks such as classification. The usual remedy is data. For the empirical risk minimizer (ERM) to generalize — that is, for its true risk under the underlying distribution P to stay close to the empirical risk it was trained to minimize, one draws a training set from P large enough for the two to coincide. In medical imaging that remedy is often out of reach: ground-truth labels require expert annotation and, for endpoints such as biopsy-confirmed malignancy, are both expensive and technically difficult to obtain.</p>
 
     <p>When the sample size cannot be increased, the alternative is to reduce the number of parameters to what the task actually requires — parsimony instead of more data. Identifying the parts of a CNN that play no role in the task, in the sense that their ReLU output never leaves zero, is one concrete route: those branches carry weights that are trained but never used, and could in principle be removed. Such units are the signature of the dying ReLU problem, and they cost more than wasted capacity — a unit whose pre-activation is negative for every input receives no gradient, so it cannot recover on its own, and the network's effective learning capacity shrinks accordingly. Several recent studies analyze the phenomenon and propose ways to mitigate it or to bring the affected units back to life.</p>
     
   <span class="eyebrow" id="related-work">Related work</span>
     <p>
-      Work on the dying ReLU falls into three broad families, following the taxonomy proposed by Lu et al. (2020). The first modifies the architecture, and in particular the activation function: leaky ReLU (Maas et al., 2013), ELU (Clevert et al., 2016), SELU (Klambauer et al., 2017) and searched activations (Ramachandran et al., 2017) all preserve some gradient signal on the negative side, although their relative benefit varies across tasks and datasets, and each adds at least one hyper-parameter to tune. The second inserts extra operations into the training loop — batch normalization (Ioffe and Szegedy, 2015), dropout (Srivastava et al., 2014) — at the cost of additional computation per iteration. The third leaves both the architecture and the training procedure untouched and changes only how weights and biases are initialized (Glorot and Bengio, 2010; Saxe et al., 2014; He et al., 2015; Mishkin and Matas, 2016).</p>
+      Work on the dying ReLU falls into three broad families, following the taxonomy proposed by Lu et al. (2020). The first modifies the architecture, and in particular the activation function: leaky ReLU (Maas et al., 2013), ELU (Clevert et al., 2016), SELU (Klambauer et al., 2017) and searched activations (Ramachandran et al., 2017) all preserve some gradient signal on the negative side, although their relative benefit varies across tasks and datasets, and each adds at least one hyper-parameter to tune. The second inserts extra operations into the training loop — batch normalization (Ioffe and Szegedy, 2015), dropout (Srivastava et al., 2014), at the cost of additional computation per iteration. The third leaves both the architecture and the training procedure untouched and changes only how weights and biases are initialized (Glorot and Bengio, 2010; Saxe et al., 2014; He et al., 2015; Mishkin and Matas, 2016).</p>
 
-    <p>Lu et al. (2020) give the first theoretical treatment of the problem in this third setting. They prove that under the symmetric, zero-centered distributions used by essentially all standard schemes, the probability that a ReLU network is born dead — already a constant function at initialization, and therefore beyond rescue by any gradient-based optimizer — converges to one as depth grows, while at fixed depth it vanishes as width grows. Death is thus a property of the architecture as much as of the initializer, which explains both why deep narrow networks are hard to train and why the wide networks used in practice rarely collapse outright. Their proposed randomized asymmetric initialization (RAI) draws a single, randomly chosen entry of each weight-and-bias row from a positive, asymmetric distribution and the remaining entries from a centered Gaussian, with the parameters fixed by a second-moment analysis so as not to trade the dying ReLU for exploding activations; the resulting born-dead probability is substantially lower than under He initialization. Shin and Karniadakis (2020) move from whole-network death to the number of dead units, distinguish tentative from permanent death, and tie trainability — the probability that training succeeds at all — to how many units are permanently dead at initialization, which motivates a data-dependent initialization. More recent work intervenes during training rather than before it: Cai et al. (2021) route the negative phase through a parallel trainable branch instead of discarding it, reconstructing units that a plain ReLU would have killed, while Horuz et al. (2025) apply surrogate gradients to inactive ReLU units (SUGAR) so that they keep receiving updates — a plug-in regularizer that leaves the architecture unchanged.</p>
+    <p>Lu et al. (2020) give the first theoretical treatment of the problem in this third setting. They prove that under the symmetric, zero-centered distributions used by essentially all standard schemes, the probability that a ReLU network is born dead — already a constant function at initialization, and therefore beyond rescue by any gradient-based optimizer — converges to one as depth grows, while at fixed depth it vanishes as width grows. Death is thus a property of the architecture as much as of the initializer, which explains both why deep narrow networks are hard to train and why the wide networks used in practice rarely collapse outright. Their proposed randomized asymmetric initialization (RAI) draws a single, randomly chosen entry of each weight-and-bias row from a positive, asymmetric distribution and the remaining entries from a centered Gaussian, with the parameters fixed by a second-moment analysis so as not to trade the dying ReLU for exploding activations; the resulting born-dead probability is substantially lower than under He initialization. Shin and Karniadakis (2020) move from whole-network death to the number of dead units, distinguish tentative from permanent death, and tie trainability — the probability that training succeeds at all, to how many units are permanently dead at initialization, which motivates a data-dependent initialization. More recent work intervenes during training rather than before it: Cai et al. (2021) route the negative phase through a parallel trainable branch instead of discarding it, reconstructing units that a plain ReLU would have killed, while Horuz et al. (2025) apply surrogate gradients to inactive ReLU units (SUGAR) so that they keep receiving updates — a plug-in regularizer that leaves the architecture unchanged.</p>
 
     <p>What all of these approaches presuppose is that one already knows where in the network the problem is. The closest existing measure is the average percentage of zeros (APoZ) of Hu et al. (2016), which ranks neurons by how often their post-ReLU output is zero over a validation set in order to prune the weakest ones; a dead unit in our sense is its limiting case, an APoZ of 100%. What is missing is not the statistic but the map: to the best of our knowledge, no simple tool exists for visualizing which parts of an architecture never activate across a full pass over an empirical dataset — for seeing where the dying ReLU actually occurs in a specific network, and how much of it is affected. That is our contribution.
     </p> 
@@ -742,7 +742,7 @@
   </figure>
 
   <!-- TODO: replace <mark>XXXX</mark> below with the SmallCNN dead-unit count, then drop the <mark> tags -->
-  <p>Observation: dead neurons are rare overall — <mark>XXXX</mark> of the network's 25,558 units (19,220 + 6,272 + 64 + 2), i.e. &asymp;0.07% — and confined to a single layer: only 1 of the 4 weighted layers (2 Conv2d + 2 Linear) is affected. None were found in the convolutional layers, and none in the final FC layer — the latter is expected of a trained classifier, since a dead unit there would make the output constant in binary classification. Every dead unit lies in fc1, the penultimate layer, where 17 of 64 neurons (26.6%) never activate. This first case already shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
+  <p>Observation: dead neurons are rare overall — <mark>XXXX</mark> of the network's 25,558 units (19,220 + 6,272 + 64 + 2), i.e. &asymp;0.07%, and confined to a single layer: only 1 of the 4 weighted layers (2 Conv2d + 2 Linear) is affected. None were found in the convolutional layers, and none in the final FC layer — the latter is expected of a trained classifier, since a dead unit there would make the output constant in binary classification. Every dead unit lies in fc1, the penultimate layer, where 17 of 64 neurons (26.6%) never activate. This first case already shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
 
 </section>
 
@@ -791,7 +791,7 @@
   <p>
     Dead units are unevenly distributed in both settings, and their overall weight
     differs sharply — a handful of units in the CIFAR-10 CNN, a third of the network
-    in GMIC — with one striking point of agreement: the penultimate fully connected
+    in GMIC, with one point of agreement: the penultimate fully connected
     layer shows a similar proportion of dead units (&asymp;30%) in the CIFAR-10 CNN and in
     GMIC's fusion network, despite the distance between the two in scale, data and task.
   </p>
@@ -819,11 +819,11 @@
   <p>
     The recurrence of &asymp;30% at the penultimate FC layer is worth flagging for a
     second reason. Work on uncertainty quantification with Monte Carlo Dropout (MCD)
-    establishes empirically that dropout should be placed at the penultimate FC layer
+    establishes empirically in some relevant use cases that dropout should be placed at the penultimate FC layer
     in classification tasks to obtain the most monotonic<sup>*</sup> uncertainty
-    estimates — a form of weak calibration, far from the strict definition
+    estimates (a form of weak calibration, far from the strict definition
     <em>E</em>[<em>Y</em>&nbsp;|&nbsp;<em>f</em>(<em>X</em>)] =
-    <em>f</em>(<em>X</em>). Whether the two observations are connected is an open
+    <em>f</em>(<em>X</em>)). Whether the two observations are connected is an open
     question. They may equally be incidental:
     establishing that the pattern is robust would first require more datasets and more
     architectures.
@@ -838,10 +838,10 @@
   <p>
     Ultimately, finding and visualizing dead units is only a diagnostic step. Acting on
     the diagnosis — changing the activation function, or dropping inactive units to
-    obtain a more parsimonious model — is a separate and well-documented task
+    obtain a more parsimonious model, is a separate and well-documented task
     (see <a href="#related-work">Related work</a>). The rates reported here are also
     empirical in the narrow sense: they are measured on a single set of weights — one
-    stochastic gradient descent run for the CNN, one released checkpoint for GMIC — and
+    stochastic gradient descent run for the CNN, one released checkpoint for GMIC, and
     evaluated on a finite dataset. Showing that a dead region reflects the architecture
     and the task, rather than one training instance, requires additional validation.
   </p>
@@ -859,8 +859,8 @@
         (Lu et al., 2020; Shin and Karniadakis, 2020).
       </li>
       <li>
-        A theoretical study of why the penultimate fully connected layer — <code>fc1</code>
-        here — is the one most consistently affected.
+        A theoretical study of why the penultimate fully connected layer —<code>fc1</code>
+        here, is the one most consistently affected.
       </li>
       <li>
         An empirical test of the link between dead units at the penultimate FC layer
