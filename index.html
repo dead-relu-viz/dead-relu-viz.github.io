@@ -742,7 +742,7 @@
   </figure>
 
   <!-- TODO: replace <mark>XXXX</mark> below with the SmallCNN dead-unit count, then drop the <mark> tags -->
-  <p>Observation: dead neurons are rare overall — <mark>XXXX</mark> of the network's 25,558 units (19,220 + 6,272 + 64 + 2), i.e. &asymp;0.07%, and confined to a single layer: only 1 of the 4 weighted layers (2 Conv2d + 2 Linear) is affected. None were found in the convolutional layers, and none in the final FC layer — the latter is expected of a trained classifier, since a dead unit there would make the output constant in binary classification. Every dead unit lies in fc1, the penultimate layer, where 17 of 64 neurons (26.6%) never activate. This first case already shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
+  <p>Observation: dead neurons are rare overall — 17 of the network's 25,558 units (19,220 + 6,272 + 64 + 2), i.e. &asymp;0.07%, and confined to a single layer: only 1 of the 4 weighted layers (2 Conv2d + 2 Linear) is affected. In terms of trainable weights, the 17 linear units account for 17x(512+1) trainable weights, ie 8,721 weights in dead neurons, among the total of xxx trainable weights in the CNN. No dead units were found in the convolutional layers, and none in the final FC layer — the latter is expected of a trained classifier, since a dead unit there would make the output constant in binary classification. Every dead unit lies in fc1, the penultimate layer, where 17 of 64 neurons (26.6%) never activate. This first case already shows that dead units are not evenly distributed across a network — a question we now examine at a much larger scale with GMIC.</p>
 
 </section>
 
@@ -807,8 +807,7 @@
 
   <!-- TODO: replace <mark>XXXX</mark> below with the SmallCNN dead-unit count, then drop the <mark> tags -->
   <p>
-    More broadly, the counts we measure (<strong><mark>XXXX</mark> of 25,558 units</strong>
-    in the CNN, <strong>5,418,830 of 16,234,316</strong> in GMIC) show how far a trained
+    More broadly, the counts we measure show how far a trained
     CNN can be from parsimonious: a third of GMIC is permanently idle. This is consistent
     with existing work on over-parameterization, where pruning routinely removes most of
     the weights of a trained CNN at no cost in accuracy (Frankle and Carbin, 2019;
@@ -821,9 +820,7 @@
     second reason. Work on uncertainty quantification with Monte Carlo Dropout (MCD)
     establishes empirically in some relevant use cases that dropout should be placed at the penultimate FC layer
     in classification tasks to obtain the most monotonic<sup>*</sup> uncertainty
-    estimates (a form of weak calibration, far from the strict definition
-    <em>E</em>[<em>Y</em>&nbsp;|&nbsp;<em>f</em>(<em>X</em>)] =
-    <em>f</em>(<em>X</em>)). Whether the two observations are connected is an open
+    estimates. Whether the two observations are connected is an open
     question. They may equally be incidental:
     establishing that the pattern is robust would first require more datasets and more
     architectures.
